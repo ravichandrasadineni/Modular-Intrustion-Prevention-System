@@ -49,7 +49,7 @@ def consumer(lock):
     # 1. Validates the
 
 def producer(ipaddr, lock):
-    print "Producer..!!"
+    print "Producer..!! IP: ", ipaddr
     # Read from the configuration file
     # Get the thresholds
     # Validate against the current ip address
@@ -75,8 +75,9 @@ def producer(ipaddr, lock):
         # Adding an entry to the table
         iptable[ipaddr] = [timeV, 1, None, False]
     lock.release()
+    print "Producer End..!! IP: ", ipaddr
 
-def getIPAddr();
+def getIPAddr():
     # Read the log file
     # Find the pattern
     # Get the IP address
@@ -108,8 +109,8 @@ if __name__ == "__main__":
     for ipaddr in getIPAddr():
         lock = threading.RLock()
         t1 = ThreadLibrary(producer, ipaddr, lock)
-        t2 = ThreadLibrary(consumer, ipaddr, lock)
-        t3 = ThreadLibrary(unblocking, ipaddr, lock)
+        t2 = ThreadLibrary(consumer, lock)
+        t3 = ThreadLibrary(unblocking, lock)
 
         # 1. Run Producer Thread
         # 2. Run Consumer Thread
@@ -118,4 +119,7 @@ if __name__ == "__main__":
         t2.start()
         t3.start()
 
+    t1.stop()
+    t2.stop()
+    t3.stop()
     print "Application Exitted.!"
