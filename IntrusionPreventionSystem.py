@@ -64,7 +64,7 @@ class Producer(threading.Thread):
         global fullCondition, queue, lock
         while True:
             print "In Consumer dude, waiting to acquire lock"
-            lock.acquire()
+            fullCondition.acquire()
             print "Consumer, acquired the lock"
             if not queue:
                 print "In cond wait of consumer.!"
@@ -93,7 +93,7 @@ class Producer(threading.Thread):
                 # Adding an entry to the table
                 iptable[ipaddr] = [timeV, 1, None, False]
             fullCondition.notify()
-            lock.release()
+            fullCondition.release()
             # time.sleep(1)
         print "Consumer End..!! IP: ", ipaddr
 
@@ -116,22 +116,23 @@ class ProduceIPAddr(threading.Thread):
         fileDesc.seek(0,2)
         while True:
             # print "In producer"
-            lock.acquire()
-            if len(queue) == 10:
+            fullCondition.acquire()
+            if len(queue) >= 1:
                 # Assuming queue is full
                 print "In cond wait of producer.!"
                 fullCondition.wait()
-            ip = fileDesc.readline()
+            ip = fileDesc.readline().strip()
             if not ip:
                 time.sleep(0.1)
                 continue
-            # Need to add more logic to get only the IP Address
-            queue.append(ip)
+            else:
+                # Need to add more logic to get only the IP Address
+                queue.append(ip)
             print "Producing: ", ip, " Queue ", queue
             fullCondition.notify()
-            print "Notifying the consumer.."
-            lock.release()
-            print "Released..!!!"
+            # print "Notifying the consumer.."
+            fullCondition.release()
+            # print "Released..!!!"
             # time.sleep(5)
 
 # Managing Threads using this class
@@ -186,9 +187,6 @@ if __name__ == "__main__":
     #      append the queue with the ip address
     # t2 - consumes from the queue and builds ip tables
 
-
-    t1 = ProduceIPAddr()
-    t2 = Producer()
-    t1.start()
-    t2.start()
+    ProduceIPAddr().start()
+    Producer().start()
     print "Application Exitted.!"
