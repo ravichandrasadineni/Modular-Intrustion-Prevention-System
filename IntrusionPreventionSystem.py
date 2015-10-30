@@ -82,8 +82,18 @@ def getIPAddr():
     # Find the pattern
     # Get the IP address
     # Return it as a string
-    for ip in iplist:
-        yield ip
+    # Logic to read the log files and update the ip
+    # So that the producer will make an entry to the table
+    # fileDesc = open("/var/adm/log/auth.log", "r")
+    fileDesc = open("C:\\Users\\raghuar\\PycharmProjects\\SysSecGit\\auth.log", "r")
+    fileDesc.seek(0,2)
+    while True:
+        line = fileDesc.readline()
+        if not line:
+            time.sleep(0.1)
+            continue
+        # Need to add more logic to get only the IP Address
+        yield line
 
 # Managing Threads using this class
 class ThreadLibrary(threading.Thread):
@@ -93,10 +103,17 @@ class ThreadLibrary(threading.Thread):
         self.func = func
         self.kwargs = kwargs
         self.runnable = True
+        self.ipaddr = None
+
+    def setIPAddr(self, ipaddr):
+        self.ipaddr = ipaddr
 
     def run(self):
         while self.runnable:
-            self.func(*self.args, **self.kwargs)
+            if self.ipaddr != None:
+                self.func(ipaddr, *self.args, **self.kwargs)
+            else:
+                self.func(*self.args, **self.kwargs)
             time.sleep(5)
 
     def stop(self):
@@ -106,19 +123,19 @@ if __name__ == "__main__":
     print "Application Started.!"
     # Read the file indefinitely - log
 
+    lock = threading.RLock()
+    t1 = ThreadLibrary(producer, None, lock)
+    t2 = ThreadLibrary(consumer, lock)
+    t3 = ThreadLibrary(unblocking, lock)
+    t1.start()
+    t2.start()
+    t3.start()
     for ipaddr in getIPAddr():
-        lock = threading.RLock()
-        t1 = ThreadLibrary(producer, ipaddr, lock)
-        t2 = ThreadLibrary(consumer, lock)
-        t3 = ThreadLibrary(unblocking, lock)
-
         # 1. Run Producer Thread
         # 2. Run Consumer Thread
         # 3. Run Unblock Thread
-        t1.start()
-        t2.start()
-        t3.start()
-
+        # t1.setIPAddr(ipaddr)
+        print " Hi , ", ipaddr
     t1.stop()
     t2.stop()
     t3.stop()
