@@ -76,7 +76,7 @@ def producer(ipaddr, lock):
         iptable[ipaddr] = [timeV, 1, None, False]
     lock.release()
 
-def getIPAddr();
+def getIPAddr():
     # Read the log file
     # Find the pattern
     # Get the IP address
