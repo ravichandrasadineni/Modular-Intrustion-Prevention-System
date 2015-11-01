@@ -38,7 +38,8 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'blocked_ip',
-    'configuration_table'
+    'configuration_table',
+    'ip_hits'
 )
 
 MIDDLEWARE_CLASSES = (
