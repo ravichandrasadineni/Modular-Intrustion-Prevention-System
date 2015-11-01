@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
                 ('block_time', models.IntegerField()),
             ],
             options={
-                'db_table': 'ip_table',
+                'db_table': 'blocked_ip',
             },
         ),
     ]

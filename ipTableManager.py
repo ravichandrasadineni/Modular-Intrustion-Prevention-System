@@ -1,10 +1,13 @@
 __author__ = 'ravi'
 
+import datetime
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.exc import MultipleResultsFound
+from sqlalchemy.orm.exc import NoResultFound
+from .ConfigReader import  get_config
 
 DATABASE_URI = "postgresql://postgres:postgres@localhost/syssec"
 engine = create_engine(DATABASE_URI, echo=False)
@@ -35,10 +38,36 @@ def get_ip_to_unblock() :
     return ips_to_unblock
 
 
-#def process_new_ip(new_ip) :
+def process_new_ip(new_ip) :
+    session = Session()
+    query = session.query(_BlockedIpInfo).filter(_BlockedIpInfo.client_ip == new_ip)
+
+    try:
+        ip_info = query.one()
+    except NoResultFound, e:
+        _add_new_ip(session, new_ip)
+        return
+    except MultipleResultsFound, e:
+        print("Something wrong, multiple results with the same Ip found")
+
+    config = get_config()
+    # If already marked for deletion, Then delete it and add New Entry
+    if ip_info.force_remove == False :
+        session.delete(ip_info)
+        _add_new_ip(session, new_ip)
+        return
 
 
-#def mark_stale_entries() :
+
+
+
+def _add_new_ip(session, new_ip) :
+    newEntry = _BlockedIpInfo(client_ip = new_ip,start_time = datetime.datetime.utcnow, \
+                                  block_start = None, force_remove = False, count =1)
+    session.add(newEntry)
+    session.commit()
+
+#def mark_stale_entries()
 
 
 
