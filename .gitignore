@@ -49,4 +49,3 @@ fabric.properties
 ipTableManager
 threading
 time
-*.pyc
