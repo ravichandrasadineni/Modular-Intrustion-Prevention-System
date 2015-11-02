@@ -62,7 +62,8 @@ def process_new_ip(new_ip):
 
     print(len(hits_last_d_mins))
     if len(hits_last_d_mins) >= config.threshold_retries:
-        _add_new_block_ip(session, new_ip);
+        is_blocked_before = _add_new_block_ip(session, new_ip)
+
         to_delete = session.query(_IPHits).filter(_IPHits.client_ip == new_ip).filter(\
                             _IPHits.hit_time >= d_min_ago)
         to_delete.delete();
@@ -70,7 +71,7 @@ def process_new_ip(new_ip):
 
     session.commit()
 
-    return is_blocked;
+    return is_blocked and not is_blocked_before;
 
 
 def remove_stale_entries():
@@ -97,14 +98,22 @@ def mark_blocked_ip_for_removal():
 
 
 def _add_new_block_ip(session, new_ip) :
-    blockedIpInfo = session.query(_BlockedIpInfo).filter(_BlockedIpInfo.client_ip == new_ip).one_or_none()
+    is_blocked = False;
+    try :
+        blockedIpInfo = session.query(_BlockedIpInfo).filter(_BlockedIpInfo.client_ip == new_ip).one()
+    except NoResultFound as e :
+        blockedIpInfo = None
+
     if blockedIpInfo == None:
         block_start = datetime.datetime.utcnow().replace(tzinfo=pytz.UTC)
         newEntry = _BlockedIpInfo(client_ip = new_ip, block_start = block_start, force_remove = False)
         session.add(newEntry)
     else:
       blockedIpInfo.block_start = datetime.datetime.utcnow().replace(tzinfo=pytz.UTC)
+      is_blocked = True
+
     session.commit()
+    return is_blocked
 
 
 def _add_new_ip(session, new_ip) :

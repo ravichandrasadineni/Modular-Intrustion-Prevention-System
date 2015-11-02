@@ -1,14 +1,14 @@
 import ipTableManager
 import sys, time
 import threading
-
+import subprocess
 # Key: IP address
 # Value: [start_time, count, block_start, force_remove]
 # force_remove: is for those IP addresses which are unblocked by the admin
 #               which is basically removing the IP Table entry
 iptable={}
 
-iplist = ["1.2.3.4", "1.2.3.5", "1.2.3.6", "1.2.3.7", "1.2.3.8"]
+# iplist = ["1.2.3.4", "1.2.3.5", "1.2.3.6", "1.2.3.7", "1.2.3.8"]
 lock = threading.RLock()
 fullCondition = threading.Condition(lock)
 queue = []
@@ -23,19 +23,22 @@ def unblocking():
     # 1. Cleans-up the DB
     # 2. Unblocks the IPs
     while True:
+        print "[Unblock] Thread woke up..!!"
         ipTableManager.mark_blocked_ip_for_removal()
         ipTableManager.remove_stale_entries()
-        for ip in ipTableManager.get_ip_to_unblock():
-            import subprocess
+        unblocked_ips = ipTableManager.get_ip_to_unblock()
+        for ip in unblocked_ips:
+
             # Make sure that allowBlock.sh is in the same directory as this script
             # And also PATH variable is exported with current working directory appended to the PATH
             try:
-                subprocess.call(["allowBlock.sh", ipaddr, "ALLOW"])
+                subprocess.call(["/home/ravi/sys-sec/allowBlock.sh", str(ip[0]), "ALLOW"])
+                print "[Consumer] Successfully unblocked: ", ip[0]
             except:
-                print "[Consumer] Blocking %s failed", ipaddr
+                print "[Consumer] Unblocking of ", str(ip[0]), " failed.!"
 
         # Call delete entries operations to cleanup the DB
-        ipTableManager.delete_blocked_entries()
+        ipTableManager.delete_blocked_entries(unblocked_ips)
 
         # Sleep for 10 seconds before the next run
         time.sleep(10)
@@ -66,12 +69,13 @@ class Consumer(threading.Thread):
             print "Consumer came out of wait..!!!!"
             ipaddr = queue.pop(0)
             print "Consuming..!! IP: ", ipaddr
-            if ipTableManager.process_new_ip(ip) == True:
+            if ipTableManager.process_new_ip(ipaddr) == True:
                 # Block the IP
                 try:
-                    subprocess.call(["allowBlock.sh", ipaddr, "DROP"])
+                    subprocess.call(["/home/ravi/sys-sec/allowBlock.sh", ipaddr, "DROP"])
+                    print "[Consumer] Successfully unblocked: ", ipaddr
                 except:
-                    print "[Consumer] Blocking %s failed", ipaddr
+                    print "**** [Consumer] Blocking ", ipaddr, " Failed ", sys.exc_info()[0]
             fullCondition.notify()
             fullCondition.release()
             # time.sleep(1)
@@ -92,7 +96,7 @@ class Producer(threading.Thread):
         # So that the producer will make an entry to the table
         # fileDesc = open("/var/adm/log/auth.log", "r")
         global fullCondition, queue, lock
-        fileDesc = open("C:\\Users\\raghuar\\PycharmProjects\\SysSecGit\\auth.log", "r")
+        fileDesc = open("./auth.log", "r")
         fileDesc.seek(0,2)
         while True:
             # print "In producer"
