@@ -8,9 +8,10 @@ import subprocess
 #               which is basically removing the IP Table entry
 iptable={}
 
-# iplist = ["1.2.3.4", "1.2.3.5", "1.2.3.6", "1.2.3.7", "1.2.3.8"]
+# Synchronization primitives
 lock = threading.RLock()
 fullCondition = threading.Condition(lock)
+# Work Queue
 queue = []
 
 def unblocking():
@@ -28,14 +29,13 @@ def unblocking():
         ipTableManager.remove_stale_entries()
         unblocked_ips = ipTableManager.get_ip_to_unblock()
         for ip in unblocked_ips:
-
             # Make sure that allowBlock.sh is in the same directory as this script
             # And also PATH variable is exported with current working directory appended to the PATH
             try:
                 subprocess.call(["./allowBlock.sh", str(ip[0]), "ALLOW"])
-                print "[Consumer] Successfully unblocked: ", ip[0]
+                print "[Unblocking] Successfully unblocked: ", str(ip[0])
             except:
-                print "[Consumer] Unblocking of ", str(ip[0]), " failed.!"
+                print "[Unblocking] Unblocking on ", str(ip[0]), " failed.!"
                 fail = True
 
         if fail == False:
@@ -86,8 +86,6 @@ class Consumer(threading.Thread):
 class Producer(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
-        # self.queue = queue
-        # self.fullCondition = condition
 
     def run(self):
         # Read the log file
@@ -148,6 +146,7 @@ if __name__ == "__main__":
     # t1 - used to read the updates from the file
     #      append the queue with the ip address
     # t2 - consumes from the queue and builds ip tables
+    # t3 - unblocks the IPs based on block timeouts and admin requests
 
     Producer().start()
     Consumer().start()
