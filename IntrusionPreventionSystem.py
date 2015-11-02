@@ -1,4 +1,4 @@
-
+import ipTableManager
 import sys, time
 import threading
 
@@ -13,55 +13,49 @@ lock = threading.RLock()
 fullCondition = threading.Condition(lock)
 queue = []
 
-def getThCount():
-    # Read from db and return the value
-    # Temporarily returning 5
-    return 5
-
-def getThBlockTicks():
-    # Read from db and return the value
-    # This is basically for the timeout of blocking the ip addr
-    # Temporarily returning 5
-    return 5
-
-def getThTimeTicks():
-    # Read from db and return the value
-    # This is basically for the timeout of checking the retries
-    # Temporarily returning 10 seconds
-    return 10
-
-def unblocking(lock):
+def unblocking():
     # Reads the force_remove value of the IP table
     # If its true: remove the entry from the system IPTable
     # If not do nothing
     print "Unblocking the ip addr..!!"
-    lock.acquire()
-    for ip in iptable.keys():
-        if iptable[ip][3] == True:
-            # 1. Remove the entry from DB
-            # 2. Remove the entry from the system IP table
-            iptable.pop(ip)
+
+    # Monitoring thread, runs indefinitely
+    # 1. Cleans-up the DB
+    # 2. Unblocks the IPs
+    while True:
+        ipTableManager.mark_blocked_ip_for_removal()
+        ipTableManager.remove_stale_entries()
+        for ip in ipTableManager.get_ip_to_unblock():
             import subprocess
             # Make sure that allowBlock.sh is in the same directory as this script
             # And also PATH variable is exported with current working directory appended to the PATH
-            subprocess.call(["allowBlock.sh", ip, "ALLOW"])
-    lock.release()
+            try:
+                subprocess.call(["allowBlock.sh", ipaddr, "ALLOW"])
+            except:
+                print "[Consumer] Blocking %s failed", ipaddr
 
-def consumer(lock):
-    print "Consumer..!!"
-    # 1. Validates the
+        # Call delete entries operations to cleanup the DB
+        ipTableManager.delete_blocked_entries()
 
-class Producer(threading.Thread):
+        # Sleep for 10 seconds before the next run
+        time.sleep(10)
+
+class Consumer(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
-        # self.queue = queue
-        # self.fullCondition = condition
 
     def run(self):
         # Read from the configuration file
         # Get the thresholds
         # Validate against the current ip address
         global fullCondition, queue, lock
+
+        # Consumer thread, runs indefinitely
+        # 1. Waits on the queue
+        # 2. Upon the notify of cond var, makes an entry to DB
+        # 3. Decided whether to Block the IP based on the threshold conditions
+        # 4. Wakes-up the Producer thread to add entries to the queue
+
         while True:
             print "In Consumer dude, waiting to acquire lock"
             fullCondition.acquire()
@@ -72,32 +66,18 @@ class Producer(threading.Thread):
             print "Consumer came out of wait..!!!!"
             ipaddr = queue.pop(0)
             print "Consuming..!! IP: ", ipaddr
-            timeV = time.clock()
-            if iptable.has_key(ipaddr):
-                # print "Key found"
-                startTime = iptable[ipaddr][0]
-                tCount = iptable[ipaddr][1]
-                # Assumption: When there is block start, then there wont be any new
-                #             requests coming for the ip address
-                if iptable[ipaddr][3] == False:
-                    if startTime + getThTimeTicks() <= timeV:
-                        iptable[ipaddr] = [timeV, 1, 0, False]
-                    else:
-                        iptable[ipaddr] = [startTime, tCount+1, None, False]
-                else:
-                    # Do nothing, reason the unblock thread will try to clean
-                    # We dont need to worry about the race conditino
-                    print "Unblock thread should have to take care of this ip ", ipaddr
-            else:
-                # No entry present in the table
-                # Adding an entry to the table
-                iptable[ipaddr] = [timeV, 1, None, False]
+            if ipTableManager.process_new_ip(ip) == True:
+                # Block the IP
+                try:
+                    subprocess.call(["allowBlock.sh", ipaddr, "DROP"])
+                except:
+                    print "[Consumer] Blocking %s failed", ipaddr
             fullCondition.notify()
             fullCondition.release()
             # time.sleep(1)
         print "Consumer End..!! IP: ", ipaddr
 
-class ProduceIPAddr(threading.Thread):
+class Producer(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         # self.queue = queue
@@ -135,30 +115,6 @@ class ProduceIPAddr(threading.Thread):
             # print "Released..!!!"
             # time.sleep(5)
 
-# Managing Threads using this class
-# class ThreadLibrary(threading.Thread):
-#     def __init__(self, func, *args, **kwargs):
-#         threading.Thread.__init__(self)
-#         self.args = args
-#         self.func = func
-#         self.kwargs = kwargs
-#         self.runnable = True
-#         self.ipaddr = None
-#
-#     def setIPAddr(self, ipaddr):
-#         self.ipaddr = ipaddr
-#
-#     def run(self):
-#         while self.runnable:
-#             if self.ipaddr != None:
-#                 self.func(self.ipaddr, *self.args, **self.kwargs)
-#             else:
-#                 self.func(*self.args, **self.kwargs)
-#             time.sleep(5)
-#
-#     def stop(self):
-#         self.runnable = False
-
 if __name__ == "__main__":
     print "Application Started.!"
     # Read the file indefinitely - log
@@ -187,6 +143,8 @@ if __name__ == "__main__":
     #      append the queue with the ip address
     # t2 - consumes from the queue and builds ip tables
 
-    ProduceIPAddr().start()
     Producer().start()
+    Consumer().start()
+    ublock_thread = threading.Thread(target=unblocking)
+    ublock_thread.start()
     print "Application Exitted.!"
