@@ -39,12 +39,13 @@ class _IPHits(Base):
 # Also removes these specific entries from the DB
 def get_ip_to_unblock():
     session = Session()
-    query = session.query(_BlockedIpInfo.client_ip).filter(_BlockedIpInfo.force_remove == True)
-    ips_to_unblock = query.all()
-    query.delete(synchronize_session=False)
-    session.commit()
+    ips_to_unblock = session.query(_BlockedIpInfo.client_ip).filter(_BlockedIpInfo.force_remove == True).all()
     return ips_to_unblock
 
+def delete_blocked_entries (ip_list) :
+    session = Session()
+    query = session.query(_BlockedIpInfo).filter(_BlockedIpInfo.client_ip.in_(ip_list)).delete(synchronize_session=False)
+    session.commit()
 
 def process_new_ip(new_ip):
     is_blocked = False
@@ -96,9 +97,13 @@ def mark_blocked_ip_for_removal():
 
 
 def _add_new_block_ip(session, new_ip) :
-    block_start = datetime.datetime.utcnow().replace(tzinfo=pytz.UTC)
-    newEntry = _BlockedIpInfo(client_ip = new_ip, block_start = block_start, force_remove = False)
-    session.add(newEntry)
+    blockedIpInfo = session.query(_BlockedIpInfo).filter(_BlockedIpInfo.client_ip == new_ip).one_or_none()
+    if blockedIpInfo == None:
+        block_start = datetime.datetime.utcnow().replace(tzinfo=pytz.UTC)
+        newEntry = _BlockedIpInfo(client_ip = new_ip, block_start = block_start, force_remove = False)
+        session.add(newEntry)
+    else:
+      blockedIpInfo.block_start = datetime.datetime.utcnow().replace(tzinfo=pytz.UTC)
     session.commit()
 
 
@@ -114,6 +119,7 @@ def _add_new_ip(session, new_ip) :
 if __name__ == '__main__' :
     process_new_ip("127.0.0.1")
     ip_to_unblock = get_ip_to_unblock()
+    delete_blocked_entries(ip_to_unblock)
     remove_stale_entries()
     mark_blocked_ip_for_removal()
     print(ip_to_unblock)
