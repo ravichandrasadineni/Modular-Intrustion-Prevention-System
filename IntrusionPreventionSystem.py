@@ -18,7 +18,7 @@ def unblocking():
     # If its true: remove the entry from the system IPTable
     # If not do nothing
     print "Unblocking the ip addr..!!"
-
+    fail = False
     # Monitoring thread, runs indefinitely
     # 1. Cleans-up the DB
     # 2. Unblocks the IPs
@@ -32,13 +32,15 @@ def unblocking():
             # Make sure that allowBlock.sh is in the same directory as this script
             # And also PATH variable is exported with current working directory appended to the PATH
             try:
-                subprocess.call(["/home/ravi/sys-sec/allowBlock.sh", str(ip[0]), "ALLOW"])
+                subprocess.call(["./allowBlock.sh", str(ip[0]), "ALLOW"])
                 print "[Consumer] Successfully unblocked: ", ip[0]
             except:
                 print "[Consumer] Unblocking of ", str(ip[0]), " failed.!"
+                fail = True
 
-        # Call delete entries operations to cleanup the DB
-        ipTableManager.delete_blocked_entries(unblocked_ips)
+        if fail == False:
+            # Call delete entries operations to cleanup the DB
+            ipTableManager.delete_blocked_entries(unblocked_ips)
 
         # Sleep for 10 seconds before the next run
         time.sleep(10)
@@ -72,8 +74,8 @@ class Consumer(threading.Thread):
             if ipTableManager.process_new_ip(ipaddr) == True:
                 # Block the IP
                 try:
-                    subprocess.call(["/home/ravi/sys-sec/allowBlock.sh", ipaddr, "DROP"])
-                    print "[Consumer] Successfully unblocked: ", ipaddr
+                    subprocess.call(["./allowBlock.sh", ipaddr, "DROP"])
+                    print "[Consumer] Successfully blocked: ", ipaddr
                 except:
                     print "**** [Consumer] Blocking ", ipaddr, " Failed ", sys.exc_info()[0]
             fullCondition.notify()
