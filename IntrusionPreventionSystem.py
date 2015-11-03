@@ -2,6 +2,7 @@ import ipTableManager
 import sys, time
 import threading
 import subprocess
+import re
 # Key: IP address
 # Value: [start_time, count, block_start, force_remove]
 # force_remove: is for those IP addresses which are unblocked by the admin
@@ -13,6 +14,18 @@ lock = threading.RLock()
 fullCondition = threading.Condition(lock)
 # Work Queue
 queue = []
+
+def get_ip_from_line(line, regex, ip_port_regex):
+    if not line:
+        return None
+    pattern = re.compile(regex)
+    if pattern.search(line):
+        # Found a match - Authentication Failure
+        ip_pattern = re.compile(ip_port_regex)
+        ip_port_tuple = ip_pattern.search(line)
+        if ip_port_tuple:
+            return ip_port_tuple.groups()
+    return None
 
 def unblocking():
     # Reads the force_remove value of the IP table
@@ -69,19 +82,19 @@ class Consumer(threading.Thread):
                 print "In cond wait of consumer.!"
                 fullCondition.wait()
             print "Consumer came out of wait..!!!!"
-            ipaddr = queue.pop(0)
+            ipaddr = queue.pop(0) # A (IP, Port) tuple
             print "Consuming..!! IP: ", ipaddr
-            if ipTableManager.process_new_ip(ipaddr) == True:
+            if ipTableManager.process_new_ip(ipaddr[0]) == True:
                 # Block the IP
                 try:
-                    subprocess.call(["./allowBlock.sh", ipaddr, "DROP"])
-                    print "[Consumer] Successfully blocked: ", ipaddr
+                    subprocess.call(["./allowBlock.sh", ipaddr[0], "DROP"])
+                    print "[Consumer] Successfully blocked: ", ipaddr[0]
                 except:
-                    print "**** [Consumer] Blocking ", ipaddr, " Failed ", sys.exc_info()[0]
+                    print "**** [Consumer] Blocking ", ipaddr[0], " Failed ", sys.exc_info()[0]
             fullCondition.notify()
             fullCondition.release()
             # time.sleep(1)
-        print "Consumer End..!! IP: ", ipaddr
+        print "Consumer End..!! IP: ", ipaddr[0]
 
 class Producer(threading.Thread):
     def __init__(self):
@@ -105,12 +118,20 @@ class Producer(threading.Thread):
                 # Assuming queue is full
                 print "In cond wait of producer.!"
                 fullCondition.wait()
-            ip = fileDesc.readline().strip()
+            # Get the line from the log file
+            # Check if the authentication failed
+            # Obtain the IP address from the line to block
+            line = fileDesc.readline().strip()
+            # Parameters:
+            # param1: line from the file
+            # param2: pattern to first match in case of failure
+            # param3: pattern to identify the ip and port number
+            ip = get_ip_from_line(line, r'sshd.*Failed', r'from\s+(\d+\.\d+\.\d+\.\d+)\s+port\s+(\d+)')
             if not ip:
                 time.sleep(0.1)
                 continue
             else:
-                # Need to add more logic to get only the IP Address
+                # Need to add more logic to get only the IP Address, Port Tuple
                 queue.append(ip)
             print "Producing: ", ip, " Queue ", queue
             fullCondition.notify()
