@@ -3,7 +3,7 @@ import sys, time
 import threading
 import subprocess
 import re
-from confFileReader import confFileReader
+from ConfFileReader import ConfFileReader
 from Queue import Queue
 
 # Key: IP address
@@ -235,7 +235,7 @@ if __name__ == "__main__":
     # t2 - consumes from the queue and builds ip tables
     # t3 - unblocks the IPs based on block timeouts and admin requests
 
-    conf_file = confFileReader('config/Applications.conf')
+    conf_file = ConfFileReader('config/Applications.conf')
     conf_file.run()
     nproducers = len(conf_file.get_patterns().keys())
     print nproducers
