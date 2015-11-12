@@ -237,13 +237,15 @@ if __name__ == "__main__":
 
     conf_file = ConfFileReader('config/Applications.conf')
     conf_file.run()
-    nproducers = len(conf_file.get_patterns().keys())
+    nproducers = len(conf_file.get_patterns())
     print nproducers
     patterns = conf_file.get_patterns()
-    for files in patterns.keys():
-        print "File ", files, " Patterns: ", patterns[files]
+    # for files in patterns.keys():
+    for list in patterns:
+        print "File ", list[0], " Patterns: ", list[1:]
         # Using Queues, implicitly has locks
-        producer(files, patterns[files][0], patterns[files][1]).start()
+        # producer(files, patterns[files][0], patterns[files][1]).start()
+        producer(list[0], list[1], list[2]).start()
 
     # Producer().start()
     # Consumer().start()
