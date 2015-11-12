@@ -40,12 +40,14 @@ class _IPHits(Base):
 def get_ip_to_unblock():
     session = Session()
     ips_to_unblock = session.query(_BlockedIpInfo.client_ip).filter(_BlockedIpInfo.force_remove == True).all()
+    session.close()
     return ips_to_unblock
 
 def delete_blocked_entries (ip_list) :
     session = Session()
     query = session.query(_BlockedIpInfo).filter(_BlockedIpInfo.client_ip.in_(ip_list)).delete(synchronize_session=False)
     session.commit()
+    session.close()
 
 def process_new_ip(new_ip):
     is_blocked = False
@@ -60,6 +62,7 @@ def process_new_ip(new_ip):
     hits_last_d_mins = session.query(_IPHits).filter(_IPHits.client_ip == new_ip).filter(\
                             _IPHits.hit_time >= d_min_ago).all()
 
+
     print(len(hits_last_d_mins))
     if len(hits_last_d_mins) >= config.threshold_retries:
         is_blocked_before = _add_new_block_ip(session, new_ip)
@@ -70,6 +73,7 @@ def process_new_ip(new_ip):
         is_blocked = True;
 
     session.commit()
+    session.close()
 
     return is_blocked and not is_blocked_before;
 
@@ -83,6 +87,7 @@ def remove_stale_entries():
     session.query(_IPHits).filter(\
                             _IPHits.hit_time <= d_min_ago).delete()
     session.commit()
+    session.close()
 
 
 def mark_blocked_ip_for_removal():
@@ -95,6 +100,7 @@ def mark_blocked_ip_for_removal():
     session.query(_BlockedIpInfo).filter(\
                             _BlockedIpInfo.block_start <= d_min_ago).update({_BlockedIpInfo.force_remove:True})
     session.commit()
+    session.close()
 
 
 def _add_new_block_ip(session, new_ip) :
