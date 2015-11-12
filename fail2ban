@@ -1,1 +1,3 @@
+# Application which performs IP block based on 
+# configured number of retries during authentication
 sudo python ./IntrusionPreventionSystem.py
