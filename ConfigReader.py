@@ -6,7 +6,7 @@ from sqlalchemy.orm.exc import MultipleResultsFound
 
 DATABASE_URI = "postgresql://postgres:postgres@localhost/syssec"
 engine = create_engine(DATABASE_URI, echo=False)
-Session = sessionmaker(bind=engine)
+session = sessionmaker(bind=engine)()
 Base = declarative_base()
 
 
@@ -39,7 +39,6 @@ class Config :
 
 # Call this method for Configuration
 def get_config():
-    session = Session()
     query = session.query(_ConfigReader)
     try:
         configDbEntry = query.one()
