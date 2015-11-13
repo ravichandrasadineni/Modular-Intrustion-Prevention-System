@@ -8,12 +8,6 @@ sudo apt-get install python-pip
 sudo pip install django=1.8.2
 sudo pip install
 
-
-
-#installing joomla
-
-
-
 #installing mysql
 sudo apt-get install mysql-server
 
@@ -23,3 +17,35 @@ sudo echo "" >> /etc/apache2/apache2.conf
 sudo echo "Include /etc/phpmyadmin/apache.conf" >> /etc/apache2/apache2.conf
 sudo service apache2 restart
 
+# Installing Joomla
+mkdir -p /var/www/joomla
+cd /var/www/joomla/
+sudo find . -type f -exec chmod 644 {} \;
+sudo find . -type d -exec chmod 755 {} \;
+mysqladmin -u root -p create joomla
+
+mysql -u root -p
+	GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER, CREATE TEMPORARY TABLES, LOCK TABLES ON joomla.* TO 'joomla'@'localhost' IDENTIFIED BY 'password';
+	\q
+
+open libraries/joomla/filter/input.php, modify the file and restart apache
+
+echo "Replace the below lines of the file libraries/joomla/filter/input.php"
+echo "$source = preg_replace('/&#(\d+);/me', "utf8_encode(chr(\\1))", $source); // decimal notation"
+echo "$source = preg_replace('/&#x([a-f0-9]+);/mei', "utf8_encode(chr(0x\\1))", $source); // hex notation"
+echo "with"
+echo "$source = preg_replace_callback('/&#x(\d+);/mi', function($m){return utf8_encode(chr('0x'.$m[1]));}, $source); // decimal notation"
+echo "$source = preg_replace_callback('/&#x([a-f0-9]+);/mi', function($m){return utf8_encode(chr('0x'.$m[1]));}, $source); // hex notation"
+
+echo -n "Are you done updating?(y/n)"
+read ch
+if [ $ch == 'y' ]
+then
+    echo "Restarting Apache...!!"
+else
+    echo "Aborting..!!"
+    exit
+fi
+
+# Restarting apache
+sudo service apache2 restart
