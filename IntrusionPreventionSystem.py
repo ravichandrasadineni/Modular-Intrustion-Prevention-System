@@ -118,7 +118,7 @@ class consumer(threading.Thread):
                         print "[Consumer] Successfully blocked: ", ipaddr[0]
                     except:
                         print "**** [Consumer] Blocking ", ipaddr[0], " Failed ", sys.exc_info()[0]
-                time.sleep(5)
+                time.sleep(1)
 
 class producer(threading.Thread):
     def __init__(self, filename, err_pat,  ipport_pat):
