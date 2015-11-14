@@ -1,1 +1,1 @@
-sudo python adminInterface/manage.py runserver
+sudo python ./adminInterface/manage.py runserver
