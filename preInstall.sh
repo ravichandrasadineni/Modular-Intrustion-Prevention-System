@@ -18,14 +18,28 @@ sudo echo "Include /etc/phpmyadmin/apache.conf" >> /etc/apache2/apache2.conf
 sudo service apache2 restart
 
 # Installing Joomla
+sudo apt-get update &&sudo apt-get update && sudo apt-get install apache2 mysql-server mysql-client php5 libapache2-mod-php5 php5-mysql php5-curl php5-gd php5-intl php-pear php5-imagick php5-imap php5-mcrypt php5-memcache php5-ming php5-ps php5-pspell php5-snmp php5-tidy php5-xmlrpc
+
+mysql -u root -p
+    CREATE DATABASE joomladb;
+    CREATE USER joomlauser@localhost IDENTIFIED BY 'root';
+    GRANT ALL ON joomladb.* TO joomlauser@localhost;
+    \q
+
+cd /tmp/ && wget http://joomlacode.org/gf/download/frsrelease/19665/160049/Joomla_3.3.3-Stable-Full_Package.zip
+
+sudo unzip -q Joomla*.zip -d /var/www/html
+sudo chown -R www-data.www-data /var/www/html
+sudo chmod -R 755 /var/www/html
+sudo service apache2 restart
+
 mkdir -p /var/www/joomla
 cd /var/www/joomla/
 sudo find . -type f -exec chmod 644 {} \;
 sudo find . -type d -exec chmod 755 {} \;
-mysqladmin -u root -p create joomla
 
 mysql -u root -p
-	GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER, CREATE TEMPORARY TABLES, LOCK TABLES ON joomla.* TO 'joomla'@'localhost' IDENTIFIED BY 'password';
+	GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER, CREATE TEMPORARY TABLES, LOCK TABLES ON joomla.* TO 'joomla'@'localhost' IDENTIFIED BY 'root';
 	\q
 
 open libraries/joomla/filter/input.php, modify the file and restart apache
