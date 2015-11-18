@@ -63,7 +63,7 @@ class LoginController extends JControllerLegacy
 		{
 			if ($result != 1) 
 			{
-				error_log('Login failed for the user: '.$credentials['username'].', from '.$_SERVER['REMOTE_ADDR']);
+				error_log('ERROR: joomla Login failed for the user: '.$credentials['username'].', from '.$_SERVER['REMOTE_ADDR']);
 			}
 			$app->redirect($return);
 		} 

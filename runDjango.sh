@@ -1,1 +1,1 @@
-sudo python ./adminInterface/manage.py runserver
+sudo python ./admininterface/manage.py runserver 0.0.0.0:90

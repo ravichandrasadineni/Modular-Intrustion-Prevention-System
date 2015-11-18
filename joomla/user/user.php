@@ -27,7 +27,6 @@ class UsersControllerUser extends UsersController
 	 */
 	public function login()
 	{
-		error_log('**** TEST MEEESSAGE ****1');
 		JSession::checkToken('post') or jexit(JText::_('JInvalid_Token'));
 
 		$app = JFactory::getApplication();
@@ -68,7 +67,7 @@ class UsersControllerUser extends UsersController
 		{
 			// Login failed !
 			// Write to Apache Log to indicate the login failure
-			error_log('Login failed, from '.$_SERVER['REMOTE_ADDR']);
+			error_log('ERROR: joomla Login failed for the user: '.$credentials['username'].', from '.$_SERVER['REMOTE_ADDR']);
 
 			$data['remember'] = (int) $options['remember'];
 			$app->setUserState('users.login.form.data', $data);
