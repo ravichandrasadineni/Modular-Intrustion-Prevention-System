@@ -11,6 +11,10 @@ sudo pip install django=1.8.2
 sudo pip install psycopg2
 sudo pip install SQLAlchemy
 
+#installing postgresql
+ sudo apt-get install postgresql postgresql-contrib
+
+
 #installing mysql
 sudo apt-get install mysql-server
 
