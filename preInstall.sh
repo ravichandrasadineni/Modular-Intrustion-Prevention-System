@@ -8,7 +8,8 @@ echo "preInstall phase started."
 sudo apt-get install python2.7
 sudo apt-get install python-pip
 sudo pip install django=1.8.2
-sudo pip install
+sudo pip install psycopg2
+sudo pip install SQLAlchemy
 
 #installing mysql
 sudo apt-get install mysql-server
