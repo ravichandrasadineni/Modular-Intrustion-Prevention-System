@@ -2,6 +2,8 @@
 # Also installs Django, PHP admin, Jhoomla, Wordpress
 # Configures applications and the tables
 
+echo "preInstall phase started."
+
 #instaling Python
 sudo apt-get install python2.7
 sudo apt-get install python-pip
@@ -63,3 +65,6 @@ fi
 
 # Restarting apache
 sudo service apache2 restart
+
+echo "Please follow the report document to install WordPress.!"
+echo "preInstall phase completed.!"
