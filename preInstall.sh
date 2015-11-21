@@ -12,7 +12,7 @@ sudo pip install psycopg2
 sudo pip install SQLAlchemy
 
 #installing postgresql
- sudo apt-get install postgresql postgresql-contrib
+sudo apt-get install postgresql postgresql-contrib
 
 
 #installing mysql
