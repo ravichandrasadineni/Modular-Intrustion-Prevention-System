@@ -168,7 +168,7 @@ class consumer(threading.Thread):
                 print "Consumer came out of wait..!!!! Queue: ", wque.queue
                 ipaddr = wque.get(1) # A (IP, Port) tuple
                 print "Consuming..!! IP: ", ipaddr, " rem : ", wque.queue
-                if ipTableManager.process_new_ip(ipaddr[0], ipaddr[1]) == True:
+                if ipTableManager.process_new_ip(ipaddr[0], ipaddr[1], ipaddr[2]) == True:
                     # Block the IP
                     try:
                         subprocess.call(["./allowBlock.sh", ipaddr[0], "DROP"])
@@ -178,13 +178,13 @@ class consumer(threading.Thread):
                 time.sleep(1)
 
 class producer_apache(threading.Thread):
-    def __init__(self, filename, login,  logout, ip_pat):
+    def __init__(self, filename, login,  logout, ip_pat, appl_name):
         threading.Thread.__init__(self)
         self.filename = filename
         self.login_pattern = login
         self.logout_pattern = logout
         self.ip_pattern = ip_pat
-        # self.appl_name = appl_name
+        self.appl_name = appl_name
 
     def run(self):
         try:
@@ -210,6 +210,7 @@ class producer_apache(threading.Thread):
                     else:
                         print "Producing: ", ip_list, " Queue ", wque.queue
                         # Need to add more logic to get only the IP Address, Port Tuple
+                        ip_list.append(self.appl_name)
                         wque.put(ip_list)
                     time.sleep(1)
         except:
@@ -382,7 +383,7 @@ if __name__ == "__main__":
         if list[3] == 'ssh':
             producer(list[0], list[1], list[2]).start()
         else:
-            producer_apache(list[0], list[1], list[2], list[3]).start()
+            producer_apache(list[0], list[1], list[2], list[3], list[4]).start()
 
     # Producer().start()
     # Consumer().start()
