@@ -366,7 +366,7 @@ if __name__ == "__main__":
     # t2 - consumes from the queue and builds ip tables
     # t3 - unblocks the IPs based on block timeouts and admin requests
 
-    conf_file = ConfFileReader('config/Applications.conf', 'config/Credentials.conf')
+    conf_file = ConfFileReader('config/Applications.conf', 'config/Credentials.conf', 'config/ApacheRequests.conf')
     conf_file.run()
     # nproducers = len(conf_file.get_patterns())
     patterns = conf_file.get_apache_patterns()
