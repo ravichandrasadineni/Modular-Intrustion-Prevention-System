@@ -19,6 +19,44 @@ fullCondition = threading.Condition(lock)
 # Work Queue
 queue = []
 wque = Queue(NWORKS)
+credentials = {}
+applications = {}
+
+def is_user_pass_line(line, list_user_pass_keywords):
+    for keyword in list_user_pass_keywords:
+        pattern = re.compile(keyword)
+        if pattern.search(line):
+            return True
+    return False
+
+def get_application_name(line, list_user_pass_keywords):
+    global applications
+    if not applications:
+        return None
+    for keyword in list_user_pass_keywords:
+        pattern = re.compile(keyword)
+        if pattern.search(line):
+            return applications[keyword]
+    return None
+
+def get_candidate_for_failure(fd, line, application, user_pass_pattern, ip_regex):
+    global credentials
+    if not line or not credentials:
+        return None
+    pattern = re.compile(user_pass_pattern)
+    if pattern.match(line):
+        user_pass_tuple=pattern.search(line)
+        if user_pass_tuple:
+            # Checking the user and password credentials
+            if credentials[application][0] != user_pass_pattern.groups()[0] or credentials[application][1] != user_pass_pattern.groups()[1]:
+                # Login failure
+                # Get the IP from the next line
+                next_line = fd.readline().strip()
+                ip_pattern = re.compile(ip_regex)
+                ip_tuple = ip_pattern.search(next_line)
+                if ip_tuple:
+                    return ip_tuple.groups()
+    return None
 
 def get_ip_from_line(line, regex, ip_port_regex):
     if not line:
@@ -119,6 +157,45 @@ class consumer(threading.Thread):
                     except:
                         print "**** [Consumer] Blocking ", ipaddr[0], " Failed ", sys.exc_info()[0]
                 time.sleep(1)
+
+
+class producer_new(threading.Thread):
+    def __init__(self, filename, err_pat,  ipport_pat, appl_name):
+        threading.Thread.__init__(self)
+        self.filename = filename
+        self.up_pattern = err_pat
+        self.ip_pattern = ipport_pat
+        self.appl_name = appl_name
+
+    def run(self):
+        try:
+            fileDesc = open(self.filename, "r")
+            # fileDesc = open("./auth.log", "r")
+            fileDesc.seek(0,2)
+            while True:
+                if not wque.full():
+                    # print "Producer came out of wait..!!!!"
+                    # Get the line from the log file
+                    # Check if the authentication failed
+                    # Obtain the IP address from the line to block
+                    line = fileDesc.readline().strip()
+                    # Parameters:
+                    # param1: line from the file
+                    # param2: pattern to first match in case of failure
+                    # param3: pattern to identify the ip and port number
+                    # def get_candidate_for_failure(fd, line, application, user_pass_pattern, ip_regex):
+                    ip = get_candidate_for_failure(fileDesc, line, self.appl_name, self.up_pattern, self.ip_pattern)
+                    if not ip:
+                        time.sleep(0.1)
+                        continue
+                    else:
+                        print "Producing: ", ip, " Queue ", wque.queue
+                        # Need to add more logic to get only the IP Address, Port Tuple
+                        wque.put(ip)
+                    time.sleep(1)
+        except:
+            print "File : ", self.filename, " has some issues.!"
+
 
 class producer(threading.Thread):
     def __init__(self, filename, err_pat,  ipport_pat):
@@ -235,17 +312,18 @@ if __name__ == "__main__":
     # t2 - consumes from the queue and builds ip tables
     # t3 - unblocks the IPs based on block timeouts and admin requests
 
-    conf_file = ConfFileReader('config/Applications.conf')
+    conf_file = ConfFileReader('config/Applications.conf', 'config/Credentials.conf')
     conf_file.run()
     nproducers = len(conf_file.get_patterns())
     print nproducers
     patterns = conf_file.get_patterns()
+    credentials = conf_file.get_credentials()
     # for files in patterns.keys():
     for list in patterns:
         print "File ", list[0], " Patterns: ", list[1:]
         # Using Queues, implicitly has locks
         # producer(files, patterns[files][0], patterns[files][1]).start()
-        producer(list[0], list[1], list[2]).start()
+        producer(list[0], list[1], list[2], list[3]).start()
 
     # Producer().start()
     # Consumer().start()
