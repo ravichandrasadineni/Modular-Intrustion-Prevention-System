@@ -45,7 +45,7 @@ def delete_blocked_entries (ip_list) :
     query = session.query(_BlockedIpInfo).filter(_BlockedIpInfo.client_ip.in_(ip_list)).delete(synchronize_session=False)
     session.commit()
 
-def process_new_ip(new_ip, is_login,appl_name ):
+def process_new_ip(new_ip, is_login, appl_name):
     config = get_config()
     diff = config.time_duration;
     current_time = datetime.datetime.utcnow().replace(tzinfo=pytz.UTC)
