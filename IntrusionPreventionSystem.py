@@ -22,6 +22,7 @@ wque = Queue(NWORKS)
 credentials = {}
 applications = {}
 
+# Helper functions
 def is_user_pass_line(line, list_user_pass_keywords):
     for keyword in list_user_pass_keywords:
         pattern = re.compile(keyword)
