@@ -45,27 +45,33 @@ def delete_blocked_entries (ip_list) :
     query = session.query(_BlockedIpInfo).filter(_BlockedIpInfo.client_ip.in_(ip_list)).delete(synchronize_session=False)
     session.commit()
 
-def process_new_ip(new_ip):
-    is_blocked = False
-    _add_new_ip(session,new_ip);
+def process_new_ip(new_ip, is_login):
     config = get_config()
     diff = config.time_duration;
     current_time = datetime.datetime.utcnow().replace(tzinfo=pytz.UTC)
-
     d_min_ago = current_time - datetime.timedelta(minutes=diff)
-
-    hits_last_d_mins = session.query(_IPHits).filter(_IPHits.client_ip == new_ip).filter(\
-                            _IPHits.hit_time >= d_min_ago).all()
-
-
-    print(len(hits_last_d_mins))
-    if len(hits_last_d_mins) >= config.threshold_retries:
-        is_blocked_before = _add_new_block_ip(session, new_ip)
-
-        to_delete = session.query(_IPHits).filter(_IPHits.client_ip == new_ip).filter(\
-                            _IPHits.hit_time >= d_min_ago)
+    if not is_login :
+        d_min_ago = current_time - datetime.timedelta(minutes=diff)
+        to_delete = session.query(_IPHits).filter(_IPHits.client_ip == new_ip).filter( \
+            _IPHits.hit_time >= d_min_ago)
         to_delete.delete();
-        is_blocked = True;
+        session.commit()
+        return False
+
+    else :
+        is_blocked = False
+        _add_new_ip(session,new_ip);
+        hits_last_d_mins = session.query(_IPHits).filter(_IPHits.client_ip == new_ip).filter( \
+            _IPHits.hit_time >= d_min_ago).all()
+
+        print(len(hits_last_d_mins))
+        if len(hits_last_d_mins) >= config.threshold_retries:
+            is_blocked_before = _add_new_block_ip(session, new_ip)
+
+            to_delete = session.query(_IPHits).filter(_IPHits.client_ip == new_ip).filter( \
+                _IPHits.hit_time >= d_min_ago)
+            to_delete.delete();
+            is_blocked = True;
 
     session.commit()
 
@@ -77,8 +83,8 @@ def remove_stale_entries():
     config = get_config()
     diff = config.time_duration;
     d_min_ago = current_time - datetime.timedelta(minutes=diff)
-    session.query(_IPHits).filter(\
-                            _IPHits.hit_time <= d_min_ago).delete()
+    session.query(_IPHits).filter( \
+        _IPHits.hit_time <= d_min_ago).delete()
     session.commit()
 
 
@@ -88,8 +94,8 @@ def mark_blocked_ip_for_removal():
     diff = config.block_time;
     d_min_ago = current_time - datetime.timedelta(minutes=diff)
 
-    session.query(_BlockedIpInfo).filter(\
-                            _BlockedIpInfo.block_start <= d_min_ago).update({_BlockedIpInfo.force_remove:True})
+    session.query(_BlockedIpInfo).filter( \
+        _BlockedIpInfo.block_start <= d_min_ago).update({_BlockedIpInfo.force_remove:True})
     session.commit()
 
 
@@ -105,8 +111,8 @@ def _add_new_block_ip(session, new_ip) :
         newEntry = _BlockedIpInfo(client_ip = new_ip, block_start = block_start, force_remove = False)
         session.add(newEntry)
     else:
-      blockedIpInfo.block_start = datetime.datetime.utcnow().replace(tzinfo=pytz.UTC)
-      is_blocked = True
+        blockedIpInfo.block_start = datetime.datetime.utcnow().replace(tzinfo=pytz.UTC)
+        is_blocked = True
 
     session.commit()
     return is_blocked
