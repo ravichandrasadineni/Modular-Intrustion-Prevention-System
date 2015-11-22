@@ -33,7 +33,7 @@ class _IPHits(Base):
     id = Column(Integer, primary_key=True)
     client_ip = Column(String)
     hit_time = Column(DateTime(timezone = True))
-
+    appl_name = Column(String)
 
 # Returns all the Ips marked for Deletion.
 # Also removes these specific entries from the DB
@@ -45,14 +45,14 @@ def delete_blocked_entries (ip_list) :
     query = session.query(_BlockedIpInfo).filter(_BlockedIpInfo.client_ip.in_(ip_list)).delete(synchronize_session=False)
     session.commit()
 
-def process_new_ip(new_ip, is_login):
+def process_new_ip(new_ip, is_login,appl_name ):
     config = get_config()
     diff = config.time_duration;
     current_time = datetime.datetime.utcnow().replace(tzinfo=pytz.UTC)
     d_min_ago = current_time - datetime.timedelta(minutes=diff)
     if not is_login :
         d_min_ago = current_time - datetime.timedelta(minutes=diff)
-        to_delete = session.query(_IPHits).filter(_IPHits.client_ip == new_ip).filter( \
+        to_delete = session.query(_IPHits).filter(_IPHits.client_ip == new_ip, _IPHits.client_ip == appl_name).filter( \
             _IPHits.hit_time >= d_min_ago)
         to_delete.delete();
         session.commit()
@@ -60,7 +60,7 @@ def process_new_ip(new_ip, is_login):
 
     else :
         is_blocked = False
-        _add_new_ip(session,new_ip);
+        _add_new_ip(session,new_ip, appl_name);
         hits_last_d_mins = session.query(_IPHits).filter(_IPHits.client_ip == new_ip).filter( \
             _IPHits.hit_time >= d_min_ago).all()
 
@@ -118,9 +118,9 @@ def _add_new_block_ip(session, new_ip) :
     return is_blocked
 
 
-def _add_new_ip(session, new_ip) :
+def _add_new_ip(session, new_ip, appl_name) :
     hit_time = datetime.datetime.utcnow().replace(tzinfo=pytz.UTC)
-    newEntry = _IPHits(client_ip = new_ip,hit_time = hit_time);
+    newEntry = _IPHits(client_ip = new_ip,hit_time = hit_time, appl_name = appl_name);
     session.add(newEntry)
     session.commit()
 
