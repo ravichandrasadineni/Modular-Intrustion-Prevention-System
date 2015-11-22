@@ -16,7 +16,7 @@ class ConfFileReader:
         for line in fd:
             if line[0] != '#':
                 line_split = re.split(',', line.strip())
-                self.apache_patterns.append([line_split[0], line_split[1], line_split[2], line_split[3]])
+                self.apache_patterns.append([line_split[0], line_split[1], line_split[2], line_split[3], line_split[4]])
         fd.close()
 
 

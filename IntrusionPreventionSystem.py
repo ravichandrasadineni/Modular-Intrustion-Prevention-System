@@ -380,7 +380,7 @@ if __name__ == "__main__":
         # Using Queues, implicitly has locks
         # producer(files, patterns[files][0], patterns[files][1]).start()
         if list[3] == 'ssh':
-            producer(list[1], list[2], list[3]).start()
+            producer(list[0], list[1], list[2]).start()
         else:
             producer_apache(list[0], list[1], list[2], list[3]).start()
 
