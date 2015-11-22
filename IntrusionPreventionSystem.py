@@ -178,13 +178,13 @@ class consumer(threading.Thread):
                 time.sleep(1)
 
 class producer_apache(threading.Thread):
-    def __init__(self, appl_name, filename, login,  logout, ip_pat):
+    def __init__(self, filename, login,  logout, ip_pat):
         threading.Thread.__init__(self)
         self.filename = filename
         self.login_pattern = login
         self.logout_pattern = logout
         self.ip_pattern = ip_pat
-        self.appl_name = appl_name
+        # self.appl_name = appl_name
 
     def run(self):
         try:
@@ -382,7 +382,7 @@ if __name__ == "__main__":
         if list[3] == 'ssh':
             producer(list[1], list[2], list[3]).start()
         else:
-            producer_apache(list[0], list[1], list[2], list[3], list[4]).start()
+            producer_apache(list[0], list[1], list[2], list[3]).start()
 
     # Producer().start()
     # Consumer().start()
