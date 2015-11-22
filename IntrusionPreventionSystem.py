@@ -281,7 +281,7 @@ class producer(threading.Thread):
                     else:
                         print "Producing: ", ip, " Queue ", wque.queue
                         # Need to add more logic to get only the IP Address, Port Tuple
-                        wque.put(ip[0], True)
+                        wque.put([ip[0], True])
                     time.sleep(1)
         except:
             print "File : ", self.filename, " has some issues.!"
