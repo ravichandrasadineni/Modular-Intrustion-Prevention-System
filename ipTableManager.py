@@ -52,7 +52,7 @@ def process_new_ip(new_ip, is_login,appl_name ):
     d_min_ago = current_time - datetime.timedelta(minutes=diff)
     if not is_login :
         d_min_ago = current_time - datetime.timedelta(minutes=diff)
-        to_delete = session.query(_IPHits).filter(_IPHits.client_ip == new_ip, _IPHits.client_ip == appl_name).filter( \
+        to_delete = session.query(_IPHits).filter(_IPHits.client_ip == new_ip, _IPHits.appl_name == appl_name).filter( \
             _IPHits.hit_time >= d_min_ago)
         to_delete.delete();
         session.commit()
