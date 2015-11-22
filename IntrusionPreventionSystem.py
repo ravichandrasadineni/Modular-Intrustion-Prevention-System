@@ -40,6 +40,24 @@ def get_application_name(line, list_user_pass_keywords):
             return applications[keyword]
     return None
 
+def get_candidate_for_login_failure(line, login, logout, ip_regex):
+    state = False
+    global credentials
+    if not line:
+        return None
+    login_pattern = re.compile(login)
+    logout_pattern = re.compile(logout)
+    ip_pattern = re.compile(ip_regex)
+    if login_pattern.search(line):
+        ip_port_tuple = ip_pattern.search(line)
+        if ip_port_tuple:
+            return [ip_port_tuple.groups()[0], True]
+    elif logout_pattern.search(line):
+        ip_port_tuple = ip_pattern.search(line)
+        if ip_port_tuple:
+            return [ip_port_tuple.groups()[0], False]
+    return None
+
 def get_candidate_for_failure(fd, line, application, user_pass_pattern, ip_regex):
     global credentials
     if not line or not credentials:
@@ -150,7 +168,7 @@ class consumer(threading.Thread):
                 print "Consumer came out of wait..!!!! Queue: ", wque.queue
                 ipaddr = wque.get(1) # A (IP, Port) tuple
                 print "Consuming..!! IP: ", ipaddr, " rem : ", wque.queue
-                if ipTableManager.process_new_ip(ipaddr[0]) == True:
+                if ipTableManager.process_new_ip(ipaddr[0], ipaddr[1]) == True:
                     # Block the IP
                     try:
                         subprocess.call(["./allowBlock.sh", ipaddr[0], "DROP"])
@@ -158,6 +176,44 @@ class consumer(threading.Thread):
                     except:
                         print "**** [Consumer] Blocking ", ipaddr[0], " Failed ", sys.exc_info()[0]
                 time.sleep(1)
+
+class producer_apache(threading.Thread):
+    def __init__(self, appl_name, filename, login,  logout, ip_pat):
+        threading.Thread.__init__(self)
+        self.filename = filename
+        self.login_pattern = login
+        self.logout_pattern = logout
+        self.ip_pattern = ip_pat
+        self.appl_name = appl_name
+
+    def run(self):
+        try:
+            fileDesc = open(self.filename, "r")
+            # fileDesc = open("./auth.log", "r")
+            fileDesc.seek(0,2)
+            while True:
+                if not wque.full():
+                    # Get the line from the log file
+                    # Check if the authentication failed
+                    # Obtain the IP address from the line to block
+                    line = fileDesc.readline().strip()
+                    # Parameters:
+                    # param1: File descriptor of the file
+                    # param2: line from the file
+                    # param3: name of the application to monitor
+                    # param4: pattern to identify the user name and password
+                    # param5: pattern to identify the ip address
+                    ip_list = get_candidate_for_login_failure(line, self.login_pattern, self.logout_pattern, self.ip_pattern)
+                    if not ip_list:
+                        time.sleep(0.1)
+                        continue
+                    else:
+                        print "Producing: ", ip_list, " Queue ", wque.queue
+                        # Need to add more logic to get only the IP Address, Port Tuple
+                        wque.put(ip_list)
+                    time.sleep(1)
+        except:
+            print "File : ", self.filename, " has some issues.!"
 
 class producer_new(threading.Thread):
     def __init__(self, filename, err_pat,  ipport_pat, appl_name):
@@ -186,7 +242,7 @@ class producer_new(threading.Thread):
                     # param5: pattern to identify the ip address
                     ip = get_candidate_for_failure(fileDesc, line, self.appl_name, self.up_pattern, self.ip_pattern)
                     if not ip:
-                        # time.sleep(0.1)
+                        time.sleep(0.1)
                         continue
                     else:
                         print "Producing: ", ip, " Queue ", wque.queue
@@ -312,19 +368,21 @@ if __name__ == "__main__":
 
     conf_file = ConfFileReader('config/Applications.conf', 'config/Credentials.conf')
     conf_file.run()
-    nproducers = len(conf_file.get_patterns())
-    print nproducers
-    patterns = conf_file.get_patterns()
-    credentials = conf_file.get_credentials()
+    # nproducers = len(conf_file.get_patterns())
+    patterns = conf_file.get_apache_patterns()
+    # patterns = conf_file.get_patterns()
+    # credentials = conf_file.get_credentials()
     # for files in patterns.keys():
+    nproducers = len(patterns)
+    print nproducers
     for list in patterns:
         print "File ", list[0], " Patterns: ", list[1:]
         # Using Queues, implicitly has locks
         # producer(files, patterns[files][0], patterns[files][1]).start()
         if list[3] == 'ssh':
-            producer(list[0], list[1], list[2]).start()
+            producer(list[1], list[2], list[3]).start()
         else:
-            producer_new(list[0], list[1], list[2], list[3]).start()
+            producer_apache(list[0], list[1], list[2], list[3], list[4]).start()
 
     # Producer().start()
     # Consumer().start()
