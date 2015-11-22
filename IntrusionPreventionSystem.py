@@ -22,6 +22,7 @@ wque = Queue(NWORKS)
 credentials = {}
 applications = {}
 
+# Helper functions
 def is_user_pass_line(line, list_user_pass_keywords):
     for keyword in list_user_pass_keywords:
         pattern = re.compile(keyword)
@@ -158,7 +159,6 @@ class consumer(threading.Thread):
                         print "**** [Consumer] Blocking ", ipaddr[0], " Failed ", sys.exc_info()[0]
                 time.sleep(1)
 
-
 class producer_new(threading.Thread):
     def __init__(self, filename, err_pat,  ipport_pat, appl_name):
         threading.Thread.__init__(self)
@@ -179,13 +179,14 @@ class producer_new(threading.Thread):
                     # Obtain the IP address from the line to block
                     line = fileDesc.readline().strip()
                     # Parameters:
-                    # param1: line from the file
-                    # param2: pattern to first match in case of failure
-                    # param3: pattern to identify the ip and port number
-                    # def get_candidate_for_failure(fd, line, application, user_pass_pattern, ip_regex):
+                    # param1: File descriptor of the file
+                    # param2: line from the file
+                    # param3: name of the application to monitor
+                    # param4: pattern to identify the user name and password
+                    # param5: pattern to identify the ip address
                     ip = get_candidate_for_failure(fileDesc, line, self.appl_name, self.up_pattern, self.ip_pattern)
                     if not ip:
-                        time.sleep(0.1)
+                        # time.sleep(0.1)
                         continue
                     else:
                         print "Producing: ", ip, " Queue ", wque.queue
@@ -194,7 +195,6 @@ class producer_new(threading.Thread):
                     time.sleep(1)
         except:
             print "File : ", self.filename, " has some issues.!"
-
 
 class producer(threading.Thread):
     def __init__(self, filename, err_pat,  ipport_pat):
@@ -205,7 +205,6 @@ class producer(threading.Thread):
 
     def run(self):
         try:
-	    print " ** ", self.filename
             fileDesc = open(self.filename, "r")
             fileDesc.seek(0,2)
             while True:
@@ -322,10 +321,10 @@ if __name__ == "__main__":
         print "File ", list[0], " Patterns: ", list[1:]
         # Using Queues, implicitly has locks
         # producer(files, patterns[files][0], patterns[files][1]).start()
-	if list[3] == 'ssh':
-		producer(list[0], list[1], list[2]).start()
-	else:
-        	producer_new(list[0], list[1], list[2], list[3]).start()
+        if list[3] == 'ssh':
+            producer(list[0], list[1], list[2]).start()
+        else:
+            producer_new(list[0], list[1], list[2], list[3]).start()
 
     # Producer().start()
     # Consumer().start()
