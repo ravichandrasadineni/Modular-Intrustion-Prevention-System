@@ -44,11 +44,11 @@ def get_candidate_for_failure(fd, line, application, user_pass_pattern, ip_regex
     if not line or not credentials:
         return None
     pattern = re.compile(user_pass_pattern)
-    if pattern.match(line):
+    if pattern.search(line):
         user_pass_tuple=pattern.search(line)
         if user_pass_tuple:
             # Checking the user and password credentials
-            if credentials[application][0] != user_pass_pattern.groups()[0] or credentials[application][1] != user_pass_pattern.groups()[1]:
+            if credentials[application][0] != user_pass_tuple.groups()[0] or credentials[application][1] != user_pass_tuple.groups()[1]:
                 # Login failure
                 # Get the IP from the next line
                 next_line = fd.readline().strip()
@@ -174,7 +174,6 @@ class producer_new(threading.Thread):
             fileDesc.seek(0,2)
             while True:
                 if not wque.full():
-                    # print "Producer came out of wait..!!!!"
                     # Get the line from the log file
                     # Check if the authentication failed
                     # Obtain the IP address from the line to block
@@ -206,8 +205,8 @@ class producer(threading.Thread):
 
     def run(self):
         try:
+	    print " ** ", self.filename
             fileDesc = open(self.filename, "r")
-            # fileDesc = open("./auth.log", "r")
             fileDesc.seek(0,2)
             while True:
                 if not wque.full():
@@ -323,7 +322,10 @@ if __name__ == "__main__":
         print "File ", list[0], " Patterns: ", list[1:]
         # Using Queues, implicitly has locks
         # producer(files, patterns[files][0], patterns[files][1]).start()
-        producer_new(list[0], list[1], list[2], list[3]).start()
+	if list[3] == 'ssh':
+		producer(list[0], list[1], list[2]).start()
+	else:
+        	producer_new(list[0], list[1], list[2], list[3]).start()
 
     # Producer().start()
     # Consumer().start()
