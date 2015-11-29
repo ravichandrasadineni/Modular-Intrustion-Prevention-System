@@ -12,7 +12,8 @@ import pytz
 
 DATABASE_URI = "postgresql://postgres:postgres@localhost/syssec"
 engine = create_engine(DATABASE_URI, echo=False)
-session = sessionmaker(bind=engine)()
+Session = sessionmaker(bind=engine)
+session = Session()
 Base = declarative_base()
 
 
@@ -42,10 +43,14 @@ def get_ip_to_unblock():
     return ips_to_unblock
 
 def delete_blocked_entries (ip_list) :
+    global session
     query = session.query(_BlockedIpInfo).filter(_BlockedIpInfo.client_ip.in_(ip_list)).delete(synchronize_session=False)
     session.commit()
+    session.close()
+    session= Session()
 
 def process_new_ip(new_ip, is_login, appl_name):
+    global session
     config = get_config()
     diff = config.time_duration;
     current_time = datetime.datetime.utcnow().replace(tzinfo=pytz.UTC)
@@ -56,10 +61,13 @@ def process_new_ip(new_ip, is_login, appl_name):
             _IPHits.hit_time >= d_min_ago)
         to_delete.delete();
         session.commit()
+        session.close()
+        session= Session()
         return False
 
     else :
 	retries = 0
+	global session
 	if appl_name == 'ssh':
 		retries = config.threshold_retries
 	else:
@@ -80,7 +88,8 @@ def process_new_ip(new_ip, is_login, appl_name):
             is_blocked = True;
 
     session.commit()
-
+    session.close()
+    session= Session()
     return is_blocked and not is_blocked_before;
 
 
