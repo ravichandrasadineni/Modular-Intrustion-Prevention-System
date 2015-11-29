@@ -59,13 +59,19 @@ def process_new_ip(new_ip, is_login, appl_name):
         return False
 
     else :
+	retries = 0
+	if appl_name == 'ssh':
+		retries = config.threshold_retries
+	else:
+		retries = config.threshold_retries + 1
+
         is_blocked = False
         _add_new_ip(session,new_ip, appl_name);
         hits_last_d_mins = session.query(_IPHits).filter(_IPHits.client_ip == new_ip).filter( \
             _IPHits.hit_time >= d_min_ago).all()
 
         print(len(hits_last_d_mins))
-        if len(hits_last_d_mins) >= config.threshold_retries:
+        if len(hits_last_d_mins) >= retries:
             is_blocked_before = _add_new_block_ip(session, new_ip)
 
             to_delete = session.query(_IPHits).filter(_IPHits.client_ip == new_ip).filter( \
